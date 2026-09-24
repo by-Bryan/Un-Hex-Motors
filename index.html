@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Un-Hex Motors</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+        @theme {
+            --color-bg: #0a0e17;
+            --color-surface: #111827;
+            --color-surface-alt: #1a2332;
+            --color-border: #1e293b;
+            --color-cyan: #00d4c8;
+            --color-cyan-dark: #00a89e;
+            --color-cyan-glow: rgba(0, 212, 200, 0.15);
+            --color-text-primary: #f0f4f8;
+            --color-text-secondary: #94a3b8;
+            --color-success: #22c55e;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+        }
+    </style>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+
+        :root {
+            --color-bg: #0a0e17;
+            --color-surface: #111827;
+            --color-surface-alt: #1a2332;
+            --color-border: #1e293b;
+            --color-cyan: #00d4c8;
+            --color-cyan-dark: #00a89e;
+            --color-cyan-glow: rgba(0, 212, 200, 0.15);
+            --color-text-primary: #f0f4f8;
+            --color-text-secondary: #94a3b8;
+            --color-success: #22c55e;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --color-bg: #0a0e17;
+                --color-surface: #111827;
+                --color-text-primary: #f0f4f8;
+            }
+        }
+        :root[data-theme="dark"] {
+            --color-bg: #0a0e17;
+            --color-surface: #111827;
+            --color-text-primary: #f0f4f8;
+        }
+
+        /* Wrapped in @layer base so Tailwind's utility classes (padding,
+           margin, max-width, etc.) always win over this reset. Without this,
+           the unlayered `*` rule below beats utility classes regardless of
+           their specificity, which was silently zeroing out all spacing. */
+        @layer base {
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+        }
+
+        /* Kept OUTSIDE @layer base: background/color must stay unlayered so
+           nothing (including Tailwind's own preflight) can win over it. */
+        html {
+            background: var(--color-bg);
+        }
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Premium title font */
+        .font-title {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+        }
+
+        /* Subtitle font — same family, lighter weight */
+        .font-subtitle {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        /* Body headings */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* Animated gradient mesh background */
+        .hero-bg {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            z-index: 0;
+        }
+        .hero-bg::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -30%;
+            width: 80%;
+            height: 150%;
+            background: radial-gradient(ellipse, rgba(0,212,200,0.08) 0%, transparent 70%);
+            animation: pulse-glow 8s ease-in-out infinite;
+        }
+        .hero-bg::after {
+            content: '';
+            position: absolute;
+            bottom: -20%;
+            left: -20%;
+            width: 60%;
+            height: 100%;
+            background: radial-gradient(ellipse, rgba(0,100,200,0.06) 0%, transparent 70%);
+            animation: pulse-glow 10s ease-in-out infinite reverse;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        /* Rotating tagline — SLOWER: 1.2s transition */
+        .tagline-container {
+            height: 3.4rem;
+            overflow: hidden;
+            position: relative;
+        }
+        @media (min-width: 768px) {
+            .tagline-container { height: 3rem; }
+        }
+        .tagline-slide {
+            position: absolute;
+            width: 100%;
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 1.2s ease, transform 1.2s ease;
+        }
+        .tagline-slide.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .tagline-slide.exit {
+            opacity: 0;
+            transform: translateY(-24px);
+        }
+
+        /* 3D Hero visualization */
+        .hero-3d-container {
+            perspective: 900px;
+            perspective-origin: 50% 50%;
+        }
+        .hero-3d-inner {
+            transform-style: preserve-3d;
+            animation: float-3d 6s ease-in-out infinite;
+        }
+        @keyframes float-3d {
+            0%, 100% {
+                transform: rotateX(6deg) rotateY(-4deg) translateZ(0px);
+            }
+            33% {
+                transform: rotateX(-3deg) rotateY(6deg) translateZ(20px);
+            }
+            66% {
+                transform: rotateX(4deg) rotateY(-2deg) translateZ(10px);
+            }
+        }
+        .hero-3d-ring {
+            transform-style: preserve-3d;
+        }
+        .hero-3d-ring-1 {
+            animation: ring-orbit 12s linear infinite;
+        }
+        .hero-3d-ring-2 {
+            animation: ring-orbit 16s linear infinite reverse;
+        }
+        @keyframes ring-orbit {
+            from { transform: rotateY(0deg); }
+            to { transform: rotateY(360deg); }
+        }
+
+        /* Waveform SVG animation */
+        .wave-path {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: draw-wave 3s ease forwards;
+        }
+        @keyframes draw-wave {
+            to { stroke-dashoffset: 0; }
+        }
+
+        /* Scroll reveal — SLOWER */
+        .reveal {
+            opacity: 0;
+            transform: translateY(35px);
+            transition: opacity 1s ease, transform 1s ease;
+        }
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Glow card hover with shadow */
+        .glow-card {
+            position: relative;
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+        .glow-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 40px rgba(0, 212, 200, 0.1), 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Progress bar animation */
+        .progress-animate {
+            animation: progress-fill 1.5s ease forwards;
+        }
+        @keyframes progress-fill {
+            from { width: 0%; }
+        }
+
+        /* Pipeline connector */
+        .pipeline-connector {
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--color-cyan), transparent);
+            position: relative;
+        }
+        .pipeline-connector::after {
+            content: '';
+            position: absolute;
+            right: -4px;
+            top: -3px;
+            width: 8px;
+            height: 8px;
+            border-top: 2px solid var(--color-cyan);
+            border-right: 2px solid var(--color-cyan);
+            transform: rotate(45deg);
+        }
+        @media (max-width: 767px) {
+            .pipeline-connector {
+                width: 2px;
+                height: 30px;
+                background: linear-gradient(180deg, var(--color-cyan), transparent);
+            }
+            .pipeline-connector::after {
+                right: auto;
+                bottom: -4px;
+                top: auto;
+                left: -3px;
+                transform: rotate(135deg);
+            }
+        }
+
+        /* Stat mini cards with depth */
+        .stat-card {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255,255,255,0.03);
+        }
+
+        /* Intentional shadows for depth */
+        .shadow-depth {
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        .shadow-depth-sm {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), 0 1px 4px rgba(0, 0, 0, 0.15);
+        }
+        .shadow-glow {
+            box-shadow: 0 0 60px rgba(0, 212, 200, 0.06), 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .text-shadow-title {
+            text-shadow: 0 4px 30px rgba(0, 212, 200, 0.2), 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+        .text-shadow-sub {
+            text-shadow: 0 2px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Noise texture overlay */
+        .noise-overlay {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.015;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        /* Section separator glow line */
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 212, 200, 0.15), transparent);
+        }
+    </style>
+</head>
+<body>
+    <div class="noise-overlay"></div>
+
+    <!-- NAV -->
+    <nav class="fixed top-0 left-0 right-0 z-50 border-b border-[var(--color-border)]/50 bg-[var(--color-bg)]/80 backdrop-blur-xl">
+        <div class="max-w-5xl mx-auto px-8 sm:px-14 lg:px-20 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--color-cyan)] to-[var(--color-cyan-dark)] flex items-center justify-center shadow-depth-sm">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="3"/></svg>
+                </div>
+                <span class="font-title text-lg tracking-tight">Un-Hex Motors</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-[0.65rem] font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-[var(--color-warning)]/10 text-[var(--color-warning)] border border-[var(--color-warning)]/20">En desarrollo</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="relative min-h-[92vh] flex items-center pt-20">
+        <div class="hero-bg"></div>
+        <div class="max-w-5xl mx-auto px-8 sm:px-14 lg:px-20 w-full relative z-10">
+            <div class="grid md:grid-cols-2 gap-16 items-center">
+                <!-- Left: Text -->
+                <div class="space-y-8">
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--color-cyan-glow)] border border-[var(--color-cyan)]/20 shadow-depth-sm">
+                        <span class="w-2 h-2 rounded-full bg-[var(--color-cyan)] animate-pulse"></span>
+                        <span class="text-xs font-medium text-[var(--color-cyan)]">Proyecto activo — Avance 2/100</span>
+                    </div>
+                    <h1 class="font-title text-5xl sm:text-6xl lg:text-7xl leading-[1.05] text-shadow-title mb-2">
+                        <span class="bg-gradient-to-r from-white via-white to-[var(--color-text-secondary)] bg-clip-text text-transparent">Un-Hex</span><br>
+                        <span class="bg-gradient-to-r from-[var(--color-cyan)] to-[var(--color-cyan-dark)] bg-clip-text text-transparent">Motors</span>
+                    </h1>
+                    <div class="tagline-container">
+                        <p class="tagline-slide active text-base sm:text-lg text-[var(--color-text-secondary)] font-light" data-tagline="0">Detecta fallas antes de que sea tarde</p>
+                        <p class="tagline-slide text-base sm:text-lg text-[var(--color-text-secondary)] font-light" data-tagline="1">Tu motor te habla, nosotros lo traducimos</p>
+                        <p class="tagline-slide text-base sm:text-lg text-[var(--color-text-secondary)] font-light" data-tagline="2">IA que escucha lo que tú no puedes</p>
+                    </div>
+                    <p class="text-sm text-[var(--color-text-secondary)]/80 max-w-md leading-relaxed">
+                        Detector de fallas mecánicas por sonido — inteligencia artificial al alcance de cualquier conductor.
+                    </p>
+                    <!-- Mini stats -->
+                    <div class="flex gap-4 pt-2">
+                        <div class="stat-card px-5 py-3.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)]">
+                            <div class="text-2xl font-title text-[var(--color-cyan)]">2</div>
+                            <div class="text-[0.6rem] uppercase tracking-wider text-[var(--color-text-secondary)] mt-0.5">Avances</div>
+                        </div>
+                        <div class="stat-card px-5 py-3.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)]">
+                            <div class="text-2xl font-title text-[var(--color-cyan)]">13</div>
+                            <div class="text-[0.6rem] uppercase tracking-wider text-[var(--color-text-secondary)] mt-0.5">Tests OK</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: 3D Waveform visualization -->
+                <div class="relative flex items-center justify-center hero-3d-container">
+                    <div class="hero-3d-inner w-full max-w-sm aspect-square relative">
+                        <!-- Ambient glow behind -->
+                        <div class="absolute inset-[-20%] rounded-full bg-[var(--color-cyan)]/[0.03] blur-3xl"></div>
+
+                        <!-- 3D Rings -->
+                        <div class="hero-3d-ring hero-3d-ring-1 absolute inset-4">
+                            <svg class="w-full h-full" viewBox="0 0 400 400">
+                                <ellipse cx="200" cy="200" rx="180" ry="180" fill="none" stroke="var(--color-cyan)" stroke-width="0.5" opacity="0.15"/>
+                            </svg>
+                        </div>
+                        <div class="hero-3d-ring hero-3d-ring-2 absolute inset-12">
+                            <svg class="w-full h-full" viewBox="0 0 400 400">
+                                <ellipse cx="200" cy="200" rx="160" ry="160" fill="none" stroke="var(--color-cyan)" stroke-width="0.4" opacity="0.1"/>
+                            </svg>
+                        </div>
+
+                        <!-- Depth shadow beneath sphere -->
+                        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 w-[60%] h-6 rounded-[50%] bg-[var(--color-cyan)]/[0.04] blur-xl"></div>
+
+                        <!-- Main visualization -->
+                        <svg class="absolute inset-0 w-full h-full drop-shadow-[0_10px_40px_rgba(0,212,200,0.08)]" viewBox="0 0 400 400">
+                            <!-- Outer glow ring -->
+                            <circle cx="200" cy="200" r="160" fill="none" stroke="url(#ring-grad)" stroke-width="1"/>
+                            <circle cx="200" cy="200" r="120" fill="none" stroke="var(--color-cyan)" stroke-width="0.3" opacity="0.12" stroke-dasharray="4 8"/>
+                            <circle cx="200" cy="200" r="80" fill="none" stroke="var(--color-cyan)" stroke-width="0.3" opacity="0.08" stroke-dasharray="2 6"/>
+
+                            <!-- Healthy waveform -->
+                            <path class="wave-path" d="M50,200 Q75,140 100,200 Q125,260 150,200 Q175,140 200,200 Q225,260 250,200 Q275,140 300,200 Q325,260 350,200" fill="none" stroke="url(#wave-grad-healthy)" stroke-width="2.5" stroke-linecap="round" filter="url(#glow)"/>
+
+                            <!-- Fault waveform -->
+                            <path class="wave-path" d="M50,200 Q65,100 80,200 Q90,300 110,180 Q130,80 150,220 Q160,310 180,190 Q200,90 220,210 Q235,290 250,195 Q270,110 290,200 Q310,270 330,190 Q345,130 350,200" fill="none" stroke="var(--color-danger)" stroke-width="1.5" opacity="0.3" stroke-linecap="round" style="animation-delay: 0.5s;" filter="url(#glow-red)"/>
+
+                            <!-- Center sphere with 3D shading -->
+                            <defs>
+                                <radialGradient id="sphere-grad" cx="40%" cy="35%">
+                                    <stop offset="0%" stop-color="#1e3a4a"/>
+                                    <stop offset="100%" stop-color="#0a0e17"/>
+                                </radialGradient>
+                                <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stop-color="var(--color-cyan)" stop-opacity="0.3"/>
+                                    <stop offset="50%" stop-color="var(--color-cyan)" stop-opacity="0.05"/>
+                                    <stop offset="100%" stop-color="var(--color-cyan)" stop-opacity="0.2"/>
+                                </linearGradient>
+                                <linearGradient id="wave-grad-healthy" x1="0" y1="0" x2="1" y2="0">
+                                    <stop offset="0%" stop-color="var(--color-cyan-dark)"/>
+                                    <stop offset="100%" stop-color="var(--color-cyan)"/>
+                                </linearGradient>
+                                <filter id="glow">
+                                    <feGaussianBlur stdDeviation="3" result="blur"/>
+                                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                                </filter>
+                                <filter id="glow-red">
+                                    <feGaussianBlur stdDeviation="2" result="blur"/>
+                                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                                </filter>
+                                <filter id="sphere-shadow">
+                                    <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="rgba(0,212,200,0.15)"/>
+                                </filter>
+                            </defs>
+                            <circle cx="200" cy="200" r="38" fill="url(#sphere-grad)" stroke="var(--color-cyan)" stroke-width="0.8" opacity="0.9" filter="url(#sphere-shadow)"/>
+                            <!-- Highlight on sphere -->
+                            <ellipse cx="190" cy="190" rx="12" ry="8" fill="white" opacity="0.04" transform="rotate(-30 190 190)"/>
+                            <text x="200" y="207" text-anchor="middle" fill="var(--color-cyan)" font-size="24" opacity="0.8">&#9881;</text>
+                        </svg>
+
+                        <!-- Label -->
+                        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[0.6rem] uppercase tracking-[0.2em] text-[var(--color-text-secondary)]/40 text-shadow-sub">Audio → Espectrograma → IA</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DIVIDER -->
+    <div class="section-divider max-w-5xl mx-auto"></div>
+
+    <!-- ESTADO DEL PROYECTO -->
+    <section class="py-28">
+        <div class="max-w-5xl mx-auto px-8 sm:px-14 lg:px-20">
+            <div class="reveal space-y-12">
+                <div class="flex items-center gap-5">
+                    <h2 class="font-subtitle text-3xl sm:text-4xl tracking-tight text-shadow-sub">Estado del proyecto</h2>
+                    <div class="flex-1 h-px bg-gradient-to-r from-[var(--color-border)] to-transparent"></div>
+                </div>
+
+                <!-- Progress -->
+                <div class="shadow-depth bg-[var(--color-surface)] rounded-2xl p-7 border border-[var(--color-border)]">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-sm text-[var(--color-text-secondary)]">Progreso general</span>
+                        <span class="text-sm font-semibold text-[var(--color-cyan)]">2%</span>
+                    </div>
+                    <div class="w-full h-3.5 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] overflow-hidden">
+                        <div class="progress-animate h-full rounded-full bg-gradient-to-r from-[var(--color-cyan-dark)] to-[var(--color-cyan)]" style="width: 2%;"></div>
+                    </div>
+                </div>
+
+                <!-- Avances cards -->
+                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <!-- Avance 1 -->
+                    <div class="glow-card bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-success)]/30">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-11 h-11 rounded-xl bg-[var(--color-success)]/10 flex items-center justify-center shadow-depth-sm">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="font-subtitle text-base">Avance 1</h3>
+                                <span class="text-[0.6rem] uppercase tracking-wider text-[var(--color-success)]">Completado</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-[var(--color-text-secondary)] leading-relaxed mt-3">Definición del proyecto, pivote a vehículos, documentación base.</p>
+                    </div>
+                    <!-- Avance 2 -->
+                    <div class="glow-card bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-success)]/30">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-11 h-11 rounded-xl bg-[var(--color-success)]/10 flex items-center justify-center shadow-depth-sm">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="font-subtitle text-base">Avance 2</h3>
+                                <span class="text-[0.6rem] uppercase tracking-wider text-[var(--color-success)]">Completado</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-[var(--color-text-secondary)] leading-relaxed mt-3">Pipeline técnico: audio → espectrograma → MFCC.</p>
+                    </div>
+                    <!-- Avance 3 -->
+                    <div class="glow-card bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] opacity-55">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-11 h-11 rounded-xl bg-[var(--color-text-secondary)]/10 flex items-center justify-center">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-secondary)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="font-subtitle text-base">Avance 3</h3>
+                                <span class="text-[0.6rem] uppercase tracking-wider text-[var(--color-text-secondary)]">Pendiente</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-[var(--color-text-secondary)] leading-relaxed mt-3">Protocolo de grabación de audio.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DIVIDER -->
+    <div class="section-divider max-w-5xl mx-auto"></div>
+
+    <!-- CÓMO FUNCIONA -->
+    <section class="py-28 bg-[var(--color-surface-alt)]/30">
+        <div class="max-w-5xl mx-auto px-8 sm:px-14 lg:px-20">
+            <div class="reveal space-y-12">
+                <div class="flex items-center gap-5">
+                    <h2 class="font-subtitle text-3xl sm:text-4xl tracking-tight text-shadow-sub">Cómo funciona</h2>
+                    <div class="flex-1 h-px bg-gradient-to-r from-[var(--color-border)] to-transparent"></div>
+                </div>
+
+                <div class="flex flex-col md:flex-row items-center justify-center gap-0">
+                    <!-- Step 1 -->
+                    <div class="glow-card flex-1 max-w-[220px] w-full bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] text-center">
+                        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[var(--color-cyan)]/10 to-transparent flex items-center justify-center text-3xl shadow-depth-sm">🎤</div>
+                        <div class="inline-block px-2.5 py-0.5 rounded-full bg-[var(--color-cyan)]/10 text-[var(--color-cyan)] text-[0.55rem] font-bold uppercase tracking-widest mb-2">Paso 1</div>
+                        <h3 class="font-subtitle text-sm mb-3">Captura</h3>
+                        <p class="text-xs text-[var(--color-text-secondary)] leading-relaxed">El micrófono del celular graba el sonido del vehículo</p>
+                    </div>
+                    <div class="pipeline-connector my-4 md:my-0 md:mx-3"></div>
+                    <!-- Step 2 -->
+                    <div class="glow-card flex-1 max-w-[220px] w-full bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] text-center">
+                        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[var(--color-cyan)]/10 to-transparent flex items-center justify-center text-3xl shadow-depth-sm">📊</div>
+                        <div class="inline-block px-2.5 py-0.5 rounded-full bg-[var(--color-cyan)]/10 text-[var(--color-cyan)] text-[0.55rem] font-bold uppercase tracking-widest mb-2">Paso 2</div>
+                        <h3 class="font-subtitle text-sm mb-3">Espectrograma</h3>
+                        <p class="text-xs text-[var(--color-text-secondary)] leading-relaxed">El audio se convierte en frecuencias vs. tiempo</p>
+                    </div>
+                    <div class="pipeline-connector my-4 md:my-0 md:mx-3"></div>
+                    <!-- Step 3 -->
+                    <div class="glow-card flex-1 max-w-[220px] w-full bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] text-center">
+                        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[var(--color-cyan)]/10 to-transparent flex items-center justify-center text-3xl shadow-depth-sm">🧠</div>
+                        <div class="inline-block px-2.5 py-0.5 rounded-full bg-[var(--color-cyan)]/10 text-[var(--color-cyan)] text-[0.55rem] font-bold uppercase tracking-widest mb-2">Paso 3</div>
+                        <h3 class="font-subtitle text-sm mb-3">Análisis IA</h3>
+                        <p class="text-xs text-[var(--color-text-secondary)] leading-relaxed">Un modelo compara contra patrones conocidos</p>
+                    </div>
+                    <div class="pipeline-connector my-4 md:my-0 md:mx-3"></div>
+                    <!-- Step 4 -->
+                    <div class="glow-card flex-1 max-w-[220px] w-full bg-[var(--color-surface)] rounded-2xl p-6 border border-[var(--color-border)] text-center">
+                        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[var(--color-cyan)]/10 to-transparent flex items-center justify-center text-3xl shadow-depth-sm">⚡</div>
+                        <div class="inline-block px-2.5 py-0.5 rounded-full bg-[var(--color-cyan)]/10 text-[var(--color-cyan)] text-[0.55rem] font-bold uppercase tracking-widest mb-2">Paso 4</div>
+                        <h3 class="font-subtitle text-sm mb-3">Resultado</h3>
+                        <p class="text-xs text-[var(--color-text-secondary)] leading-relaxed">"Normal", "Posible falla" o "Falla detectada"</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DIVIDER -->
+    <div class="section-divider max-w-5xl mx-auto"></div>
+
+    <!-- DEMO: PIPELINE EN ACCIÓN -->
+    <section class="py-28">
+        <div class="max-w-5xl mx-auto px-8 sm:px-14 lg:px-20">
+            <div class="reveal space-y-12">
+                <div class="flex items-center gap-5">
+                    <h2 class="font-subtitle text-3xl sm:text-4xl tracking-tight text-shadow-sub">Demo: Pipeline en acción</h2>
+                    <div class="flex-1 h-px bg-gradient-to-r from-[var(--color-border)] to-transparent"></div>
+                </div>
+
+                <!-- Disclaimer -->
+                <div class="flex items-start gap-3 p-5 rounded-xl bg-[var(--color-cyan)]/[0.04] border border-[var(--color-cyan)]/10 shadow-depth-sm">
+                    <svg class="w-5 h-5 mt-0.5 flex-shrink-0 text-[var(--color-cyan)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    <p class="text-sm text-[var(--color-text-secondary)]"><strong class="text-[var(--color-text-primary)]">Nota:</strong> Demostración con audio sintético generado por software, no grabaciones reales. Valida que el flujo técnico funciona correctamente.</p>
+                </div>
+
+                <!-- Comparison -->
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Motor sano -->
+                    <div class="glow-card shadow-glow bg-[var(--color-surface)] rounded-2xl p-7 border border-[var(--color-success)]/20">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="w-3.5 h-3.5 rounded-full bg-[var(--color-success)] shadow-[0_0_12px_rgba(34,197,94,0.4)]"></div>
+                            <h3 class="font-subtitle text-lg text-[var(--color-success)]">Motor sano</h3>
+                        </div>
+                        <p class="text-xs text-[var(--color-text-secondary)] mt-3 mb-7 leading-relaxed">Frecuencia fundamental a 80 Hz con armónicos naturales. Energía concentrada en bajas frecuencias.</p>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3">
+                                <span class="text-[0.6rem] w-14 text-right text-[var(--color-text-secondary)] font-mono">80 Hz</span>
+                                <div class="flex-1 h-5 rounded-md bg-[var(--color-bg)] overflow-hidden border border-[var(--color-border)]">
+                                    <div class="h-full rounded-md bg-gradient-to-r from-[#166534] to-[var(--color-success)] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]" style="width: 90%;"></div>
+                                </div>
+                                <span class="text-[0.6rem] w-9 text-[var(--color-text-secondary)] font-mono">90%</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-[0.6rem] w-14 text-right text-[var(--color-text-secondary)] font-mono">160 Hz</span>
+                                <div class="flex-1 h-5 rounded-md bg-[var(--color-bg)] overflow-hidden border border-[var(--color-border)]">
+                                    <div class="h-full rounded-md bg-gradient-to-r from-[#166534] to-[var(--color-success)]" style="width: 60%;"></div>
+                                </div>
+                                <span class="text-[0.6rem] w-9 text-[var(--color-text-secondary)] font-mono">60%</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-[0.6rem] w-14 text-right text-[var(--color-text-secondary)] font-mono">320 Hz</span>
+                                <div class="flex-1 h-5 rounded-md bg-[var(--color-bg)] overflow-hidden border border-[var(--color-border)]">
+                                    <div class="h-full rounded-md bg-gradient-to-r from-[#166534] to-[var(--color-success)]" style="width: 30%;"></div>
+                                </div>
+                                <span class="text-[0.6rem] w-9 text-[var(--color-text-secondary)] font-mono">30%</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-[0.6rem] w-14 text-right text-[var(--color-text-secondary)] font-mono">640 Hz</span>
+                                <div class="flex-1 h-5 rounded-md bg-[var(--color-bg)] overflow-hidden border border-[var(--color-border)]">
+                                    <div class="h-full rounded-md bg-gradient-to-r from-[#166534] to-[var(--color-success)]" style="width: 12%;"></div>
+                                </div>
+                                <span class="text-[0.6rem] w-9 text-[var(--color-text-secondary)] font-mono">12%</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-[0.6rem] w-14 text-right text-[var(--color-text-secondary)] font-mono">1k+ Hz</span>
+                                <div class="flex-1 h-5 rounded-md bg-[var(--color-bg)] overflow-hidden border border-[var(--color-border)]">
+                                    <div class="h-full rounded-md bg-gradient-to-r from-[#166534] to-[var(--color-success)]" style="width: 3%;"></div>
+                                </div>
+                                <span class="text-[0.6rem] w-9 text-[var(--color-text-secondary)] font-mono">3%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Motor con falla -->
+                    <div class="glow-card shadow-glow bg-[var(--color-surface)] rounded-2xl p-7 border border-[var(--color-danger)]/20">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="w-3.5 h-3.5 rounded-full bg-[var(--color-danger)] animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.4)]"></div>
+                            <h3 class="font-subtitle text-lg text-[var(--color-danger)]">Motor con falla</h3>
+                        </div>
+                        <p class="text-xs text-[var(--color-text-secondary)] mt-3 mb-7 leading-relaxed">Golpeteo a 350 Hz (balero) y chirrido a 2,200 Hz (banda). Espectrograma más "ruidoso".</p>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3">
+                                <span class="text-[0.6rem] w-14 text-right text-[var(--color-text-secondary)] font-mono">80 Hz</span>
+                                <div class="flex-1 h-5 rounded-md bg-[var(--color-bg)] overflow-hidden border border-[var(--color-border)]">
+                                    <div class="h-full rounded-md bg-gradient-to-r from-[#7f1d1d] to-[var(--color-danger)]" style="width: 75%;"></div>
+                                </div>
+                                <span class="text-[0.6rem] w-9 text-[var(--color-text-secondary)] font-mono">75%</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-[0.6rem] w-14 text-right text-[var(--color-text-secondary)] font-mono">160 Hz</span>
+                                <div class="flex-1 h-5 rounded-md bg-[var(--color-bg)] overflow-hidden border border-[var(--color-border)]">
+                                    <div class="h-full rounded-md bg-gradient-to-r from-[#7f1d1d] to-[var(--color-danger)]" style="width: 50%;"></div>
+                                </div>
+                                <span class="text-[0.6rem] w-9 text-[var(--color-text-secondary)] font-mono">50%</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-[0.6rem] w-14 text-right text-[var(--color-text-secondary)] font-mono">350 Hz</span>
+                                <div class="flex-1 h-5 rounded-md bg-[var(--color-bg)] overflow-hidden border border-[var(--color-border)]">
+                                    <div class="h-full rounded-md bg-gradient-to-r from-[#7f1d1d] to-[var(--color-danger)]" style="width: 60%;"></div>
+                                </div>
+                                <span class="text-[0.6rem] w-9 text-[var(--color-text-secondary)] font-mono">60%</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-[0.6rem] w-14 text-right text-[var(--color-text-secondary)] font-mono">640 Hz</span>
+                                <div class="flex-1 h-5 rounded-md bg-[var(--color-bg)] overflow-hidden border border-[var(--color-border)]">
+                                    <div class="h-full rounded-md bg-gradient-to-r from-[#7f1d1d] to-[var(--color-danger)]" style="width: 15%;"></div>
+                                </div>
+                                <span class="text-[0.6rem] w-9 text-[var(--color-text-secondary)] font-mono">15%</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-[0.6rem] w-14 text-right text-[var(--color-text-secondary)] font-mono">2.2k Hz</span>
+                                <div class="flex-1 h-5 rounded-md bg-[var(--color-bg)] overflow-hidden border border-[var(--color-border)]">
+                                    <div class="h-full rounded-md bg-gradient-to-r from-[#7f1d1d] to-[var(--color-danger)]" style="width: 40%;"></div>
+                                </div>
+                                <span class="text-[0.6rem] w-9 text-[var(--color-text-secondary)] font-mono">40%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DIVIDER -->
+    <div class="section-divider max-w-5xl mx-auto"></div>
+
+    <!-- STACK TÉCNICO -->
+    <section class="py-28 bg-[var(--color-surface-alt)]/30">
+        <div class="max-w-5xl mx-auto px-8 sm:px-14 lg:px-20">
+            <div class="reveal space-y-12">
+                <div class="flex items-center gap-5">
+                    <h2 class="font-subtitle text-3xl sm:text-4xl tracking-tight text-shadow-sub">Stack técnico</h2>
+                    <div class="flex-1 h-px bg-gradient-to-r from-[var(--color-border)] to-transparent"></div>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div class="glow-card bg-[var(--color-surface)] rounded-xl p-5 border border-[var(--color-border)]">
+                        <span class="text-[0.55rem] font-bold uppercase tracking-widest text-[var(--color-cyan)]">Lenguaje</span>
+                        <p class="text-sm mt-2.5 font-medium">Python 3.9+</p>
+                    </div>
+                    <div class="glow-card bg-[var(--color-surface)] rounded-xl p-5 border border-[var(--color-border)]">
+                        <span class="text-[0.55rem] font-bold uppercase tracking-widest text-[var(--color-cyan)]">Audio</span>
+                        <p class="text-sm mt-2.5 font-medium">scipy.signal, wave</p>
+                    </div>
+                    <div class="glow-card bg-[var(--color-surface)] rounded-xl p-5 border border-[var(--color-border)]">
+                        <span class="text-[0.55rem] font-bold uppercase tracking-widest text-[var(--color-cyan)]">Matemáticas</span>
+                        <p class="text-sm mt-2.5 font-medium">numpy, scipy.fft</p>
+                    </div>
+                    <div class="glow-card bg-[var(--color-surface)] rounded-xl p-5 border border-[var(--color-border)]">
+                        <span class="text-[0.55rem] font-bold uppercase tracking-widest text-[var(--color-cyan)]">Visualización</span>
+                        <p class="text-sm mt-2.5 font-medium">matplotlib</p>
+                    </div>
+                    <div class="glow-card bg-[var(--color-surface)] rounded-xl p-5 border border-[var(--color-border)]">
+                        <span class="text-[0.55rem] font-bold uppercase tracking-widest text-[var(--color-cyan)]">Frontend</span>
+                        <p class="text-sm mt-2.5 font-medium">HTML + Tailwind CSS</p>
+                    </div>
+                    <div class="glow-card bg-[var(--color-surface)] rounded-xl p-5 border border-[var(--color-border)]">
+                        <span class="text-[0.55rem] font-bold uppercase tracking-widest text-[var(--color-warning)]">Modelo IA</span>
+                        <p class="text-sm mt-2.5 font-medium text-[var(--color-text-secondary)]">Pendiente</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DIVIDER -->
+    <div class="section-divider max-w-5xl mx-auto"></div>
+
+    <!-- LIMITACIONES -->
+    <section class="py-28">
+        <div class="max-w-5xl mx-auto px-8 sm:px-14 lg:px-20">
+            <div class="reveal">
+                <div class="shadow-depth bg-[var(--color-surface)] rounded-2xl p-8 sm:p-10 border border-[var(--color-warning)]/20">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="w-12 h-12 rounded-xl bg-[var(--color-warning)]/10 flex items-center justify-center shadow-depth-sm">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        </div>
+                        <h2 class="font-subtitle text-2xl sm:text-3xl text-[var(--color-warning)] text-shadow-sub">Limitaciones actuales</h2>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-4 p-4 rounded-lg bg-[var(--color-warning)]/[0.04] border-l-2 border-[var(--color-warning)]/30">
+                            <span class="text-[var(--color-warning)] mt-0.5 flex-shrink-0 text-lg">•</span>
+                            <p class="text-sm text-[var(--color-text-secondary)] leading-relaxed">El audio utilizado es <strong class="text-[var(--color-text-primary)]">sintético</strong> — aún no se cuenta con grabaciones reales de vehículos.</p>
+                        </div>
+                        <div class="flex items-start gap-4 p-4 rounded-lg bg-[var(--color-warning)]/[0.04] border-l-2 border-[var(--color-warning)]/30">
+                            <span class="text-[var(--color-warning)] mt-0.5 flex-shrink-0 text-lg">•</span>
+                            <p class="text-sm text-[var(--color-text-secondary)] leading-relaxed">No existe un modelo de IA entrenado — el pipeline prepara las características para uno futuro.</p>
+                        </div>
+                        <div class="flex items-start gap-4 p-4 rounded-lg bg-[var(--color-warning)]/[0.04] border-l-2 border-[var(--color-warning)]/30">
+                            <span class="text-[var(--color-warning)] mt-0.5 flex-shrink-0 text-lg">•</span>
+                            <p class="text-sm text-[var(--color-text-secondary)] leading-relaxed">El ruido ambiental de la calle y la diversidad de vehículos son retos técnicos abiertos.</p>
+                        </div>
+                        <div class="flex items-start gap-4 p-4 rounded-lg bg-[var(--color-warning)]/[0.04] border-l-2 border-[var(--color-warning)]/30">
+                            <span class="text-[var(--color-warning)] mt-0.5 flex-shrink-0 text-lg">•</span>
+                            <p class="text-sm text-[var(--color-text-secondary)] leading-relaxed">Este sistema proporciona <strong class="text-[var(--color-text-primary)]">advertencias tempranas</strong>, no previene accidentes directamente.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-[var(--color-border)]/50 bg-[var(--color-surface)]">
+        <div class="max-w-5xl mx-auto px-8 sm:px-14 lg:px-20 py-10">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-5">
+                <div class="flex items-center gap-3">
+                    <div class="w-7 h-7 rounded-md bg-gradient-to-br from-[var(--color-cyan)] to-[var(--color-cyan-dark)] flex items-center justify-center shadow-depth-sm">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/><circle cx="12" cy="12" r="3"/></svg>
+                    </div>
+                    <span class="font-title text-sm">Un-Hex Motors</span>
+                </div>
+                <p class="text-xs text-[var(--color-text-secondary)] text-center">Detector de Fallas Mecánicas por Sonido — Proyecto en desarrollo, 2026</p>
+                <p class="text-[0.6rem] text-[var(--color-text-secondary)]/40">No sustituye un diagnóstico mecánico profesional.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Rotating tagline — SLOWER interval (7s instead of 3.5s)
+        (function() {
+            const slides = document.querySelectorAll('.tagline-slide');
+            let current = 0;
+            setInterval(() => {
+                slides[current].classList.remove('active');
+                slides[current].classList.add('exit');
+                const prev = current;
+                setTimeout(() => { slides[prev].classList.remove('exit'); }, 1200);
+                current = (current + 1) % slides.length;
+                slides[current].classList.add('active');
+            }, 7000);
+        })();
+
+        // Intersection Observer for scroll reveals
+        (function() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+            document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+        })();
+    </script>
+</body>
+</html>
